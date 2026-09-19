@@ -45,22 +45,84 @@ namespace Kovsie_Study_and_Assignment_Tracker
         public frmStudyAndAssignement()
         {
             InitializeComponent();
+            ApplyBackgroundArt();
             WireEvents();
             LoadData();
             RefreshModuleList();
             RefreshAssignmentList();
             countdownTimer.Start();
         }
+
+        // Loads the two generated background images from the Assets folder next to the .exe
+        // and applies them: the abstract "hero_bg" artwork behind the two gradient header
+        // panels (which now paint themselves semi-transparently, see pnlHeroHeader_Paint /
+        // pnlCountdownHero_Paint), and the light dot-grid "paper_texture" tiled behind each
+        // tab page, so every screen has a subtle branded backdrop instead of a flat colour.
+        // Wrapped in try/catch so a missing or corrupt asset file never crashes the app -
+        // worst case, it just falls back to the plain colours that shipped before this.
+        private void ApplyBackgroundArt()
+        {
+            System.Drawing.Image heroArt = LoadAppImage("hero_bg.png");
+            System.Drawing.Image paperTexture = LoadAppImage("paper_texture.png");
+
+            if (heroArt != null)
+            {
+                pnlHeroHeader.BackgroundImage = heroArt;
+                pnlHeroHeader.BackgroundImageLayout = ImageLayout.Stretch;
+                pnlCountdownHero.BackgroundImage = heroArt;
+                pnlCountdownHero.BackgroundImageLayout = ImageLayout.Stretch;
+            }
+
+            if (paperTexture != null)
+            {
+                this.BackgroundImage = paperTexture;
+                this.BackgroundImageLayout = ImageLayout.Tile;
+
+                tbcAdd_Remove_Modules.BackgroundImage = paperTexture;
+                tbcAdd_Remove_Modules.BackgroundImageLayout = ImageLayout.Tile;
+
+                tbcAssignements.BackgroundImage = paperTexture;
+                tbcAssignements.BackgroundImageLayout = ImageLayout.Tile;
+
+                tbcStudySchedule.BackgroundImage = paperTexture;
+                tbcStudySchedule.BackgroundImageLayout = ImageLayout.Tile;
+            }
+        }
+
+        private static System.Drawing.Image LoadAppImage(string fileName)
+        {
+            try
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", fileName);
+                if (!File.Exists(path)) return null;
+
+                // Load through a MemoryStream rather than Image.FromFile so the file itself
+                // isn't left open/locked for the lifetime of the app.
+                byte[] bytes = File.ReadAllBytes(path);
+                using (MemoryStream stream = new MemoryStream(bytes))
+                {
+                    return System.Drawing.Image.FromStream(stream);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
         // THis event handler Paints the gradient fill for pnlHeroHeader. The panel itself, its position and
         // its title label are all declared in the Designer file - this is the one piece
         // (a gradient) that has no Designer property, so it has to stay code.
         private void pnlHeroHeader_Paint(object sender, PaintEventArgs e)
         {
+            // The panel's BackgroundImage (set in ApplyBackgroundArt) is drawn by WinForms
+            // before this handler runs. The gradient below is now semi-transparent (alpha 205
+            // instead of fully opaque) so that artwork shows through underneath the brand tint,
+            // instead of being covered up by it.
             using (System.Drawing.Drawing2D.LinearGradientBrush brush =
                 new System.Drawing.Drawing2D.LinearGradientBrush(
                     pnlHeroHeader.ClientRectangle,
-                    System.Drawing.Color.FromArgb(72, 61, 196),
-                    System.Drawing.Color.FromArgb(48, 112, 190),
+                    System.Drawing.Color.FromArgb(205, 72, 61, 196),
+                    System.Drawing.Color.FromArgb(205, 48, 112, 190),
                     System.Drawing.Drawing2D.LinearGradientMode.Horizontal))
             {
                 e.Graphics.FillRectangle(brush, pnlHeroHeader.ClientRectangle);
@@ -84,20 +146,23 @@ namespace Kovsie_Study_and_Assignment_Tracker
         private void pnlCountdownHero_Paint(object sender, PaintEventArgs e)
         {
             Assignment next = studyPlanOrder.FirstOrDefault();
-            System.Drawing.Color from = System.Drawing.Color.FromArgb(72, 61, 196);
-            System.Drawing.Color to = System.Drawing.Color.FromArgb(48, 112, 190);
+            // Alpha 205 (instead of fully opaque) lets the panel's BackgroundImage - the same
+            // abstract artwork used on pnlHeroHeader, set in ApplyBackgroundArt - show through
+            // under whichever urgency tint applies below.
+            System.Drawing.Color from = System.Drawing.Color.FromArgb(205, 72, 61, 196);
+            System.Drawing.Color to = System.Drawing.Color.FromArgb(205, 48, 112, 190);
 
             if (next != null)
             {
                 if (next.IsOverdue)
                 {
-                    from = System.Drawing.Color.FromArgb(196, 60, 60);
-                    to = System.Drawing.Color.FromArgb(214, 100, 65);
+                    from = System.Drawing.Color.FromArgb(205, 196, 60, 60);
+                    to = System.Drawing.Color.FromArgb(205, 214, 100, 65);
                 }
                 else if (next.DaysRemaining <= 2)
                 {
-                    from = System.Drawing.Color.FromArgb(214, 130, 40);
-                    to = System.Drawing.Color.FromArgb(230, 170, 60);
+                    from = System.Drawing.Color.FromArgb(205, 214, 130, 40);
+                    to = System.Drawing.Color.FromArgb(205, 230, 170, 60);
                 }
             }
 
